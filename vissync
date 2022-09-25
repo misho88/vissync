@@ -1,0 +1,24 @@
+#!/usr/bin/env python3
+
+from subprocess import Popen, TimeoutExpired
+from sys import exit, stdout
+
+
+def get_meminfo(keys=('Dirty', 'Writeback')):
+    with open('/proc/meminfo') as meminfo:
+        for line in meminfo:
+            if line[:line.index(':')] in keys:
+                yield line
+
+
+sync = Popen('/usr/bin/sync')
+while sync.returncode is None:
+    lines = list(get_meminfo())
+    stdout.writelines(lines)
+    stdout.write(f'\x1b[{len(lines)}F')
+    try:
+        sync.wait(timeout=1.0)
+    except TimeoutExpired:
+        pass
+stdout.writelines(get_meminfo())
+exit(sync.returncode)
